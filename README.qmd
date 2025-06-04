@@ -50,6 +50,7 @@ for (i in 1:N) {
 
 ### Run impute and stabilize algorithm once to yield a point estimate. 
 
+Providing a `reference_P` does not affect the algorithm, but aligns results at the end.
 ```{r}
 impute_and_stabilize_res <- impute_and_stabilize(
   M, Tr, rank = 3, reference_P = true_P
@@ -59,7 +60,7 @@ summary(impute_and_stabilize_res)
 plot(impute_and_stabilize_res)
 ```
 
-If you have multiple sets of results, they can be plotted together with `plot_causalLFO_results`. This could be from multiple algorithms as we have here, or alternatively from multiple datasets.
+If you have multiple sets of results, they can be plotted together with `plot_causalLFO_results`. This could be from multiple algorithms as we have here, or alternatively from multiple datasets. This only makes sense when the same `reference_P` is used for all results. If a reference is not available, the resulting `Phat` from the first result.
 ```{r}
 all_data_res <- all_data(
   M, Tr, rank = 3, reference_P = true_P
@@ -119,10 +120,8 @@ plot_causalLFO_bootstrap_results(res_list)
 
 ## Algorithms
 
-This section follows the notation of the paper "Causal Inference for Latent Factor-Modeled Outcomes". Please refer to sections 2 and 3 for details.
-
-The primary algorithm provided by this package is the `impute_and_stabilize` algorithm proposed in the paper "Causal Inference for Latent Factor-Modeled Outcomes". We first estimate unobserved potential outcomes $\mathbf Y(1-\mathbf T)$ with imputations $\tilde{\mathbf Y}_{1-\mathbf T}$. We fit the factor model $\hat{\boldsymbol \lambda}$ on a matrix of the original sample size $\tilde{\mathbf Y}_{\mathbf 0}$ as a combination of observed (for $T_i = 0$) and imputed (for $T_i = 1$) values to estimate $\ell_{\text{IS}, 0}(Y_i, T_i)$. A non-negative linear model is then used on the remaining $\tilde{\mathbf Y}_{1}$ with fixed $\hat{\boldsymbol \lambda}$ to measure $\ell_{\text{IS}, 1}(Y_i, T_i)$. Pairwise comparisons are used to estimate ATE with a mean of individual treatment effects estimator.
-
-We also provide two baselines for comparison. First, `all_data` uses the full dataset $\mathbf Y$ to perform matrix decomposition to estimate $\hat{\boldsymbol \lambda}$ and $\ell_{\text{AD}, T_i}(Y_i, T_i)$, then again the full dataset to estimate causal effects with difference of means on $\ell_{\text{AD}, T_i}(Y_i, T_i)$. Second, we consider the `random_split` approach suggested by prior literature: identify a random subset of 50% of indices $S$, use $\mathbf Y_S$ as input to matrix decomposition to estimate $\hat{\boldsymbol \lambda}$, use a non-negative linear model on remaining data $\mathbf Y_{/S}$ to estimate latent outcomes $\ell_{\text{RS}, T_i}(Y_i, T_i)$ for $i \notin S$, and finally estimating the ATE with difference of means on those estimates.
-
-Finally, we provide two ablations of the novel Impute and Stabilize algorithm to identify the relative benefits of each component. In the `impute` ablation, we perform imputation as before, but we perform matrix decomposition on the observed data $\mathbf Y$ to estimate $\ell_{\text{I}, T_i}(Y_i, T_i)$ for observed $T_i$ and non-negative linear model on the imputed $\tilde{\mathbf Y}_{1-\mathbf T}$ to estimate $\ell_{\text{I}, 1-T_i}(Y_i, T_i)$ for unobserved $T_i$. In the `stabilize` ablation, we perform matrix decomposition only on the untreated subset of observed data $\mathbf Y_{\{i:T_i = 0\}}$ and non-negative linear model on the treated subset $\mathbf Y_{\{i:T_i = 1\}}$, and a simple difference of means is used on the estimated latent outcomes $\ell_{\text{S}, T_i}(Y_i, T_i)$.
+- **All Data** algorithm to estimate ATE on latent factor-modeled outcomes. Fits NMF on all data, then estimates ATE from estimated latent outcomes. *Subject to measurement interference and not recommended by the authors.*
+- **Random Split** algorithm to estimate ATE on latent factor-modeled outcomes. Fits NMF on a subset of data, a Poisson non-negative linear model on the rest with fixed factors, then estimates ATE from estimated latent outcomes in the second subset. *Subject to measurement interference and not recommended by the authors.*
+- **Impute** algorithm to estimate ATE on latent factor-modeled outcomes. Imputes counterfactual outcomes under Poisson distributional assumptions, fits NMF on observed data, a Poisson non-negative linear model on imputed data, then estimates ATE as the mean difference in estimated latent outcomes between treated and untreated. *Intended as an ablation of impute_and_stabilize and not recommended by the authors.*
+- **Stabilize** algorithm to estimate ATE on latent factor-modeled outcomes. Fits NMF on untreated samples, a Poisson non-negative linear model on treated samples, then estimates ATE using estimated latent outcomes. *Intended as an ablation of impute_and_stabilize and not recommended by the authors.*
+- **Impute and Stabilize** algorithm to estimate ATE on latent factor-modeled outcomes. Imputes counterfactual outcomes under Poisson distributional assumptions, fits NMF on untreated data (mix of observed and imputed), a Poisson non-negative linear model on treated data, then estimates ATE as the mean difference in estimated latent outcomes between treated and untreated.

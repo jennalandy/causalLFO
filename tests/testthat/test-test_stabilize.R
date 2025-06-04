@@ -29,18 +29,18 @@ test_that("bootstrap_wrapper of stabilize works called internally", {
   res <- stabilize(
     M, Tr, rank = 3, reference_P = true_P,
     bootstrap = TRUE, bootstrap_file = "stabilize",
-    bootstrap_reps = 10
+    bootstrap_reps = 5
   )
   expect_equal(length(res$mean), 3)
   expect_equal(length(res$se), 3)
   expect_equal(length(res$lower95), 3)
   expect_equal(length(res$upper95), 3)
-  expect_true(res$lower95 < res$upper95)
+  expect_true(all(res$lower95 < res$upper95))
   expect_equal(dim(res$Phat), c(96, 3))
   expect_equal(dim(res$Chat), c(3, 10))
   expect_equal(res$est_file, "stabilize.csv")
   expect_equal(res$all_Ps_file, "stabilize_aligned_Ps.rds")
 
   est <- read.csv(res$est_file)
-  expect_equal(nrow(est), 10)
+  expect_equal(nrow(est), 5)
 })

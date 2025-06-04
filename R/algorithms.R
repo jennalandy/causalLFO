@@ -154,7 +154,7 @@ random_split <- function(
 #' @description Impute algorithm to estimate ATE on latent factor-modeled outcomes.
 #' Imputes counterfactual outcomes under Poisson distributional assumptions,
 #' fits NMF on observed data, a Poisson non-negative linear model on imputed data,
-#' then estimates ATE as the mean difference in estimated latent outcomes between treated and untreated
+#' then estimates ATE as the mean difference in estimated latent outcomes between treated and untreated.
 #' \strong{Intended as an ablation of \link{impute_and_stabilize} and not recommended by the authors.}
 #'
 #' @param M \code{DxN} matrix, observed outcomes for \code{N} samples
