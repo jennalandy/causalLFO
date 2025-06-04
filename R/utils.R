@@ -163,3 +163,13 @@ extract_nmf_info <- function(nmf_res, reference_P = NULL) {
     reassigned = reassigned
   ))
 }
+
+bootstrap_data <- function(M, Tr) {
+  G = ncol(M)
+  idx = sample(1:G, G, replace = TRUE)
+
+  return(list(
+    M = M[,idx],
+    Tr = Tr[idx]
+  ))
+}

@@ -12,12 +12,48 @@ stabilize(
   seed = NULL,
   nrun = 5,
   method = "brunet",
-  force_second = NULL
+  bootstrap = FALSE,
+  bootstrap_reps = 500,
+  bootstrap_filename = "stabilize"
 )
 }
 \arguments{
-\item{force_second}{}
+\item{M}{\code{DxN} matrix, observed outcomes for \code{N} samples}
+
+\item{Tr}{boolean vector of length \code{N}, treatment assignment for \code{N} samples}
+
+\item{rank}{integer, latent rank \code{K}}
+
+\item{reference_P}{\code{DxK} matrix, optional latent factor reference matrix.
+Results will be aligned to these factors if provided.}
+
+\item{seed}{integer, random seed passed to \link[NMF]{nmf}}
+
+\item{nrun}{integer, number of NMF runs to perform, passed to \link[NMF]{nmf}}
+
+\item{method}{string, specification of the NMF algorithm, passed to \link[NMF]{nmf}.
+Default is \code{"brunet"} to optimize Poisson likelihood.}
+
+\item{bootstrap}{boolean, whether to employ bootstrap resampling for
+uncertainty quantification; default is \code{FALSE}}
+
+\item{bootstrap_reps}{integer, number of bootstrap samples to use; default is \code{500}}
+
+\item{bootstrap_filename}{string, file name to save bootstrap estimates
+and aligned factor matrices}
+}
+\value{
+If \code{bootstrap = TRUE}, returns the output of \link{bootstrap_wrapper}. Otherwise:
+\itemize{
+  \item \code{ATE}: estimated average treatment effect, vector of length \code{K = rank}
+  \item \code{sim_mat}: cosine similarity matrix \code{K x K} between estimated (\code{Phat}) and reference (\code{reference_P}) factors if provided
+  \item \code{Chat}: estimated latent causal outcome matrix \code{K x N} corresponding to assigned treatment levels, one column per sample
+  \item \code{Phat}: estimated latent factor matrix \code{D x K}
+}
 }
 \description{
-Stabilize algorithm
+Stabilize algorithm to estimate ATE on latent factor-modeled outcomes.
+Fits NMF on untreated samples, a Poisson non-negative linear model on treated samples,
+then estimates ATE using estimated latent outcomes.
+\strong{Intended as an ablation of \link{impute_and_stabilize} and not recommended by the authors.}
 }

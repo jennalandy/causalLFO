@@ -1,14 +1,17 @@
-# `causalLFO`: R package for Causal Inference for Latent Factor-Modeled Outcomes
+---
+title: "`causalLFO`: R package for\nCausal Inference for Latent Factor-Modeled Outcomes"
+format: gfm
+---
 
-This R package provides all algorithms discussed in the paper “Causal Inference for Latent Factor-Modeled Outcomes”. Code to reproduce results from our paper can be found in the [jennalandy/causalLFO_PAPER](https://github.com/jennalandy/causalLFO_PAPER/tree/master) repository.
+This R package provides all algorithms discussed in the paper "Causal Inference for Latent Factor-Modeled Outcomes". Code to reproduce results from our paper can be found in the [jennalandy/causalLFO_PAPER](https://github.com/jennalandy/causalLFO_PAPER/tree/master) repository.
 
 ## Installation
 
-``` r
+```{r eval = FALSE}
 remotes::install_github("jennalandy/causalLFO")
 ```
 
-``` r
+```{r message = FALSE}
 library(NMF)
 library(causalLFO)
 ```
@@ -20,8 +23,7 @@ Please install `NMF` if you have not yet done so. `NMF` requires the `Biobase` p
 ## Quick Start
 
 This code block simulates a simple dataset with 100 samples, three latent factors, and a true ATE of 300 on the first latent dimension.
-
-``` r
+```{r}
 N = 100; D = 96; K = 3; ATE = c(300, 0, 0)
 
 # Simulate treatment assignment
@@ -46,39 +48,19 @@ for (i in 1:N) {
 }
 ```
 
-### Run impute and stabilize algorithm once to yield a point estimate.
+### Run impute and stabilize algorithm once to yield a point estimate. 
 
-``` r
+```{r}
 impute_and_stabilize_res <- impute_and_stabilize(
   M, Tr, rank = 3, reference_P = true_P
 )
 class(impute_and_stabilize_res)
-```
-
-```         
-[1] "causalLFO_result"
-```
-
-``` r
 summary(impute_and_stabilize_res)
-```
-
-```         
-        ATE
-1 285.68717
-2  58.62578
-3  18.89587
-```
-
-``` r
 plot(impute_and_stabilize_res)
 ```
 
-![](README_files/figure-commonmark/unnamed-chunk-4-1.png)
-
 If you have multiple sets of results, they can be plotted together with `plot_causalLFO_results`. This could be from multiple algorithms as we have here, or alternatively from multiple datasets.
-
-``` r
+```{r}
 all_data_res <- all_data(
   M, Tr, rank = 3, reference_P = true_P
 )
@@ -89,13 +71,13 @@ res_list <- list(
 plot_causalLFO_results(res_list)
 ```
 
-![](README_files/figure-commonmark/unnamed-chunk-5-1.png)
+
 
 ### Run impute and stabilize algorithm with bootstrap resampling to estimate a 95% confidence interval.
 
 When `bootstrap = TRUE`, any of the `causalLFO` algorithms will create three files named according to the `bootstrap_filename` parameter: `examples/impute_and_stabilize.csv` with ATE estimates from each of the 500 bootstrap replicates, `examples/impute_and_stabilize_aligned_Ps.rds` with a list of all 500 aligned factor matrices. We also choose to save the `res` object to a separate `.rds` file for easy access at a later time, and `examples/impute_and_stabilize_res.rds` with the full results object that is also returned by the function
 
-``` r
+```{r eval = FALSE}
 impute_and_stabilize_bootstrap_res <- impute_and_stabilize(
   M, Tr, rank = 3, reference_P = true_P,
   bootstrap = TRUE, bootstrap_reps = 30,
@@ -107,35 +89,16 @@ impute_and_stabilize_bootstrap_res <- impute_and_stabilize(
 
 When `bootstrap = TRUE`, the `class` is changed from `causalLFO_result` to `causalLFO_bootstrap_result`, resulting in updated `summary` and `plot` methods:
 
-``` r
+```{r}
 impute_and_stabilize_bootstrap_res <- readRDS("examples/impute_and_stabilize_res.rds")
 class(impute_and_stabilize_bootstrap_res)
-```
-
-```         
-[1] "causalLFO_bootstrap_result"
-```
-
-``` r
 summary(impute_and_stabilize_bootstrap_res)
-```
-
-```         
-        mean      lower     upper
-1 329.393154 284.542602 364.59113
-2  -9.934582 -33.938823  29.14747
-3  30.943265  -9.165087  70.81672
-```
-
-``` r
 plot(impute_and_stabilize_bootstrap_res)
 ```
 
-![](README_files/figure-commonmark/unnamed-chunk-7-1.png)
-
 Again, multiple sets of results can be plotted together with `plot_causalLFO_bootstrap_results`.
 
-``` r
+```{r eval = FALSE}
 all_data_bootstrap_res <- all_data(
   M, Tr, rank = 3, reference_P = true_P,
   bootstrap = TRUE, bootstrap_reps = 30,
@@ -145,7 +108,7 @@ all_data_bootstrap_res <- all_data(
 )
 ```
 
-``` r
+```{r}
 all_data_bootstrap_res <- readRDS("examples/all_data_res.rds")
 res_list <- list(
   'All Data' = all_data_bootstrap_res,
@@ -154,13 +117,11 @@ res_list <- list(
 plot_causalLFO_bootstrap_results(res_list)
 ```
 
-![](README_files/figure-commonmark/unnamed-chunk-9-1.png)
-
 ## Algorithms
 
-This section follows the notation of the paper “Causal Inference for Latent Factor-Modeled Outcomes”. Please refer to sections 2 and 3 for details.
+This section follows the notation of the paper "Causal Inference for Latent Factor-Modeled Outcomes". Please refer to sections 2 and 3 for details.
 
-The primary algorithm provided by this package is the `impute_and_stabilize` algorithm proposed in the paper “Causal Inference for Latent Factor-Modeled Outcomes”. We first estimate unobserved potential outcomes $\mathbf Y(1-\mathbf T)$ with imputations $\tilde{\mathbf Y}_{1-\mathbf T}$. We fit the factor model $\hat{\boldsymbol \lambda}$ on a matrix of the original sample size $\tilde{\mathbf Y}_{\mathbf 0}$ as a combination of observed (for $T_i = 0$) and imputed (for $T_i = 1$) values to estimate $\ell_{\text{IS}, 0}(Y_i, T_i)$. A non-negative linear model is then used on the remaining $\tilde{\mathbf Y}_{1}$ with fixed $\hat{\boldsymbol \lambda}$ to measure $\ell_{\text{IS}, 1}(Y_i, T_i)$. Pairwise comparisons are used to estimate ATE with a mean of individual treatment effects estimator.
+The primary algorithm provided by this package is the `impute_and_stabilize` algorithm proposed in the paper "Causal Inference for Latent Factor-Modeled Outcomes". We first estimate unobserved potential outcomes $\mathbf Y(1-\mathbf T)$ with imputations $\tilde{\mathbf Y}_{1-\mathbf T}$. We fit the factor model $\hat{\boldsymbol \lambda}$ on a matrix of the original sample size $\tilde{\mathbf Y}_{\mathbf 0}$ as a combination of observed (for $T_i = 0$) and imputed (for $T_i = 1$) values to estimate $\ell_{\text{IS}, 0}(Y_i, T_i)$. A non-negative linear model is then used on the remaining $\tilde{\mathbf Y}_{1}$ with fixed $\hat{\boldsymbol \lambda}$ to measure $\ell_{\text{IS}, 1}(Y_i, T_i)$. Pairwise comparisons are used to estimate ATE with a mean of individual treatment effects estimator.
 
 We also provide two baselines for comparison. First, `all_data` uses the full dataset $\mathbf Y$ to perform matrix decomposition to estimate $\hat{\boldsymbol \lambda}$ and $\ell_{\text{AD}, T_i}(Y_i, T_i)$, then again the full dataset to estimate causal effects with difference of means on $\ell_{\text{AD}, T_i}(Y_i, T_i)$. Second, we consider the `random_split` approach suggested by prior literature: identify a random subset of 50% of indices $S$, use $\mathbf Y_S$ as input to matrix decomposition to estimate $\hat{\boldsymbol \lambda}$, use a non-negative linear model on remaining data $\mathbf Y_{/S}$ to estimate latent outcomes $\ell_{\text{RS}, T_i}(Y_i, T_i)$ for $i \notin S$, and finally estimating the ATE with difference of means on those estimates.
 

@@ -17,6 +17,8 @@ LazyData: true
 Imports: 
     bayesNMF,
     bigmemory,
+    ggplot2,
+    glue,
     NMF
 Remotes:
     jennalandy/bayesNMF

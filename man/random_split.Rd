@@ -2,7 +2,7 @@
 % Please edit documentation in R/algorithms.R
 \name{random_split}
 \alias{random_split}
-\title{Random split algorithm}
+\title{Random Split algorithm}
 \usage{
 random_split(
   M,
@@ -10,15 +10,56 @@ random_split(
   rank,
   reference_P = NULL,
   prop = 0.5,
+  force_second = c(),
   seed = NULL,
   nrun = 5,
   method = "brunet",
-  force_second = c()
+  bootstrap = FALSE,
+  bootstrap_reps = 500,
+  bootstrap_filename = "random_split"
 )
 }
 \arguments{
-\item{force_second}{}
+\item{M}{\code{DxN} matrix, observed outcomes for \code{N} samples}
+
+\item{Tr}{boolean vector of length \code{N}, treatment assignment for \code{N} samples}
+
+\item{rank}{integer, latent rank \code{K}}
+
+\item{reference_P}{\code{DxK} matrix, optional latent factor reference matrix.
+Results will be aligned to these factors if provided.}
+
+\item{prop}{float, proportion to include in the first (NMF) part of data}
+
+\item{force_second}{vector, indices to force into the second (NNLM) part of data}
+
+\item{seed}{integer, random seed passed to \link[NMF]{nmf}}
+
+\item{nrun}{integer, number of NMF runs to perform, passed to \link[NMF]{nmf}}
+
+\item{method}{string, specification of the NMF algorithm, passed to \link[NMF]{nmf}.
+Default is \code{"brunet"} to optimize Poisson likelihood.}
+
+\item{bootstrap}{boolean, whether to employ bootstrap resampling for
+uncertainty quantification; default is \code{FALSE}}
+
+\item{bootstrap_reps}{integer, number of bootstrap samples to use; default is \code{500}}
+
+\item{bootstrap_filename}{string, file name to save bootstrap estimates
+and aligned factor matrices}
+}
+\value{
+If \code{bootstrap = TRUE}, returns the output of \link{bootstrap_wrapper}. Otherwise:
+\itemize{
+  \item \code{ATE}: estimated average treatment effect, vector of length \code{K = rank}
+  \item \code{sim_mat}: cosine similarity matrix \code{K x K} between estimated (\code{Phat}) and reference (\code{reference_P}) factors if provided
+  \item \code{Chat}: estimated latent causal outcome matrix \code{K x N} corresponding to assigned treatment levels, one column per sample
+  \item \code{Phat}: estimated latent factor matrix \code{D x K}
+}
 }
 \description{
-Random split algorithm
+Random Split algorithm to estimate ATE on latent factor-modeled outcomes.
+Fits NMF on a subset of data, a Poisson non-negative linear model on the rest with
+fixed factors, then estimates ATE from estimated latent outcomes in the second subset.
+\strong{Subject to measurement interference and not recommended by the authors.}
 }
