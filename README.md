@@ -1,6 +1,6 @@
-# `causalLFO`: R package for Causal Inference for Latent Factor-Modeled Outcomes
+# `causalLFO`: R package for Causal Inference for Latent Outcomes Learned with Factor Models
 
-This R package provides all algorithms discussed in the paper “Causal Inference for Latent Factor-Modeled Outcomes”. Code to reproduce results from our paper can be found in the [jennalandy/causalLFO_PAPER](https://github.com/jennalandy/causalLFO_PAPER/tree/master) repository.
+This R package provides all algorithms discussed in the paper “Causal Inference for Latent Outcomes Learned with Factor Models”. Code to reproduce results from our paper can be found in the [jennalandy/causalLFO_PAPER](https://github.com/jennalandy/causalLFO_PAPER/tree/master) repository.
 
 ## Installation
 
@@ -19,10 +19,14 @@ Please install `NMF` if you have not yet done so. `NMF` requires the `Biobase` p
 
 ## Quick Start
 
-This code block simulates a simple dataset with 100 samples, three latent factors, and a true ATE of 300 on the first latent dimension.
+This code block simulates a simple dataset with 100 samples, three latent factors, and a true ATE of 1000 on the latent dimension 1, with ATE of 0 for dimensions 2 and 3. We include five outliers in the true untreated latent outcomes for factor 3.
 
 ``` r
-N = 100; D = 96; K = 3; ATE = c(300, 0, 0)
+library(tidyverse)
+library(ggridges)
+
+set.seed(321)
+N = 100; D = 96; K = 3; ATE = c(1000, 0, 0)
 
 # Simulate treatment assignment
 Tr = sample(c(0, 1), N, replace = TRUE)
@@ -33,7 +37,22 @@ true_P = matrix(rexp(D*K, rate = 1), nrow = D)
 true_P = sweep(true_P, 2, colSums(true_P), '/')
 
 # Simulate untreated factor loadings C
-true_C = matrix(rexp(K*N, rate = 0.01), nrow = K)
+true_C = matrix(nrow = K, ncol = N)
+true_C[1,] <- rgamma(N, shape = 1, scale = 1000) # larger scale for factor 1
+true_C[2,] <- rexp(N, rate = 0.01)
+true_C[3,] <- rexp(N, rate = 0.01)
+true_C[3,sample(1:N, 10)] <- rnorm(10, mean = 1500, sd = 1000) # outliers for factor 3
+data.frame(t(true_C)) %>%
+  pivot_longer(1:K, names_to = 'k', values_to = 'C') %>%
+  ggplot(aes(x = C, y = as.factor(k))) +
+  geom_density_ridges() +
+  theme_bw() +
+  labs(x = "Untreated latent outcome distribution", y = "Latent dimension")
+```
+
+![](README_files/figure-commonmark/unnamed-chunk-3-1.png)
+
+``` r
 # Add ATE to loadigns of treated samples
 for (k in 1:K) {
   true_C[k, Tr == 1] <- true_C[k, Tr == 1] + ATE[k]
@@ -67,9 +86,9 @@ summary(impute_and_stabilize_res)
 
 ```         
         ATE
-1 330.03103
-2   4.59252
-3  11.64228
+1 944.07472
+2  11.60620
+3 -52.84368
 ```
 
 ``` r
@@ -123,10 +142,10 @@ summary(impute_and_stabilize_bootstrap_res)
 ```
 
 ```         
-        mean      lower     upper
-1 329.393154 284.542602 364.59113
-2  -9.934582 -33.938823  29.14747
-3  30.943265  -9.165087  70.81672
+        mean      lower      upper
+1 1002.70616  763.47986 1384.10774
+2   10.74524  -27.91742   42.69258
+3  -33.87980 -132.16468   77.48332
 ```
 
 ``` r
@@ -147,8 +166,24 @@ all_data_bootstrap_res <- all_data(
 )
 ```
 
+Comparing the All Data and Impute and Stabilize algorithms, recall that the true ATE is 1000 for latent dimension 1 and 0 for dimensions 2 and 3. We see:
+
+-   Improved efficiency of Impute and Stabilize, narrower confidence intervals on factors 2 and 3 (especially factor 3 which has outliers in the data generating model)
+-   Impute and Stabilize corrects the All Data algorithm’s biased estimates for factors 1 and 3
+
 ``` r
 all_data_bootstrap_res <- readRDS("examples/all_data_res.rds")
+summary(all_data_bootstrap_res)
+```
+
+```         
+        mean      lower      upper
+1  852.34174  580.46693 1086.67511
+2   12.08584  -40.73959   81.13129
+3 -140.59002 -339.77022   17.31335
+```
+
+``` r
 res_list <- list(
   'All Data' = all_data_bootstrap_res,
   'Impute and Stabilize' = impute_and_stabilize_bootstrap_res
@@ -160,8 +195,16 @@ plot_causalLFO_bootstrap_results(res_list)
 
 ## Algorithms
 
--   **All Data** algorithm to estimate ATE on latent factor-modeled outcomes. Fits NMF on all data, then estimates ATE from estimated latent outcomes. *Subject to measurement interference and not recommended by the authors.*
--   **Random Split** algorithm to estimate ATE on latent factor-modeled outcomes. Fits NMF on a subset of data, a Poisson non-negative linear model on the rest with fixed factors, then estimates ATE from estimated latent outcomes in the second subset. *Subject to measurement interference and not recommended by the authors.*
+Novel algorithm from “Causal Inference for Latent Outcomes Learned with Factor Models”:
+
+-   **Impute and Stabilize** algorithm to estimate ATE on latent factor-modeled outcomes. Imputes counterfactual outcomes under Poisson distributional assumptions, fits NMF on untreated data (mix of observed and imputed), a Poisson non-negative linear model on treated data, then estimates ATE as the mean difference in estimated latent outcomes between treated and untreated.
+
+Ablations of Impute and Stabilize:
+
 -   **Impute** algorithm to estimate ATE on latent factor-modeled outcomes. Imputes counterfactual outcomes under Poisson distributional assumptions, fits NMF on observed data, a Poisson non-negative linear model on imputed data, then estimates ATE as the mean difference in estimated latent outcomes between treated and untreated. *Intended as an ablation of impute_and_stabilize and not recommended by the authors.*
 -   **Stabilize** algorithm to estimate ATE on latent factor-modeled outcomes. Fits NMF on untreated samples, a Poisson non-negative linear model on treated samples, then estimates ATE using estimated latent outcomes. *Intended as an ablation of impute_and_stabilize and not recommended by the authors.*
--   **Impute and Stabilize** algorithm to estimate ATE on latent factor-modeled outcomes. Imputes counterfactual outcomes under Poisson distributional assumptions, fits NMF on untreated data (mix of observed and imputed), a Poisson non-negative linear model on treated data, then estimates ATE as the mean difference in estimated latent outcomes between treated and untreated.
+
+Baseline Algorithms:
+
+-   **All Data** algorithm to estimate ATE on latent factor-modeled outcomes. Fits NMF on all data, then estimates ATE from estimated latent outcomes. *Subject to measurement interference and not recommended by the authors.*
+-   **Random Split** algorithm to estimate ATE on latent factor-modeled outcomes. Fits NMF on a subset of data, a Poisson non-negative linear model on the rest with fixed factors, then estimates ATE from estimated latent outcomes in the second subset. *Subject to measurement interference and not recommended by the authors.*

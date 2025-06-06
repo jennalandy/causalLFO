@@ -301,18 +301,18 @@ stabilize <- function(
     ))
   }
   G <- ncol(M)
-  Chat <- matrix(nrow = nrow(M), ncol = rank)
+  Chat <- matrix(nrow = rank, ncol = ncol(M))
 
   # NMF on M0
   nmf_res <- nmf_wrapper(
-    M[,Tr == 0], rank = rank, nrun = nrun, seed = seed, method = method
+    M[,Tr==0], rank = rank, nrun = nrun, seed = seed, method = method
   )
   # Rescale and align to reference
   nmf_res <- extract_nmf_info(nmf_res, reference_P = reference_P)
-  Chat[,Tr == 0] <- nmf_res$C
+  Chat[,Tr==0] <- nmf_res$C
 
   # NNLM on M1
-  Chat[,Tr == 1] <- poisson_nnlm(M[,Tr==1], fixed_P = nmf_res$P)
+  Chat[,Tr==1] <- poisson_nnlm(M[,Tr==1], fixed_P = nmf_res$P)
 
   # DM estimator on Chat
   ATE <- rowMeans_wrapper(Chat[,Tr==1]) -

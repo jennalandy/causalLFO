@@ -39,7 +39,7 @@ test_that("bootstrap_wrapper of all_data works called externally", {
   expect_equal(dim(res$Phat), c(96, 3))
   expect_equal(dim(res$Chat), c(3, 10))
   expect_equal(res$est_file, "all_data_ext.csv")
-  expect_equal(res$all_Ps_file, "all_data_ext.rds")
+  expect_equal(res$all_Ps_file, "all_data_ext_aligned_Ps.rds")
 
   est <- read.csv(res$est_file)
   expect_equal(nrow(est), 5)
