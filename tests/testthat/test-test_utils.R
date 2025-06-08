@@ -76,12 +76,34 @@ test_that("extract_nmf_info works", {
 })
 
 test_that("extract_nmf_info works with reference_P", {
-  true_P = matrix(rpois(96*3, lambda = 19), nrow = 96)
+  true_P = matrix(rpois(96*3, lambda = 1), nrow = 96)
   true_C = matrix(rpois(3*10, lambda = 1), nrow = 3)
   M = matrix(nrow = 96, ncol = 10)
   for (i in 1:10){
     M[,i] <- true_P %*% true_C[,i]
   }
+  nmf_res <- nmf_wrapper(M, rank = 3, nrun = 1)
+  nmf_res <- extract_nmf_info(nmf_res, reference_P = true_P)
+
+  expect_equal(nrow(nmf_res$P), 96)
+  expect_equal(ncol(nmf_res$P), 3)
+  expect_equal(nrow(nmf_res$C), 3)
+  expect_equal(ncol(nmf_res$C), 10)
+  expect_true(nmf_res$minsim > 0.9)
+  expect_equal(nrow(nmf_res$reassigned), 3)
+  expect_equal(ncol(nmf_res$reassigned), 3)
+  expect_equal(min(diag(nmf_res$reassigned)), nmf_res$minsim, tolerance = 0.001)
+})
+
+test_that("extract_nmf_info works with reference_P and problem rows and columns", {
+  true_P = matrix(rpois(96*3, lambda = 1), nrow = 96)
+  true_C = matrix(rpois(3*10, lambda = 1), nrow = 3)
+  M = matrix(nrow = 96, ncol = 10)
+  for (i in 1:10){
+    M[,i] <- true_P %*% true_C[,i]
+  }
+  M[,1] <- 0
+  M[1,] <- 0
   nmf_res <- nmf_wrapper(M, rank = 3, nrun = 1)
   nmf_res <- extract_nmf_info(nmf_res, reference_P = true_P)
 

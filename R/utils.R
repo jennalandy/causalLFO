@@ -86,34 +86,45 @@ split_dat <- function(N, prop, seed = NULL, force_second = c()) {
 #' @import NMF
 nmf_wrapper <- function(M, rank, nrun = 5, seed = NULL, method = 'brunet', ...) {
   problem_rows <- rowSums(M) == 0
-  if (sum(problem_rows) == 0){
+  problem_cols <- colSums(M) == 0
+  if (sum(problem_rows) == 0 & sum(problem_cols) == 0){
     nmf_res <- NMF::nmf(M, rank = rank, nrun = nrun, seed = seed, method = method, ...)
   } else {
     # NMF fails when one row is all 0
     # run NMF excluding those rows, then add back into factors with 0s
-    M_sub <- M[!problem_rows,]
+    M_sub <- M[!problem_rows,!problem_cols]
     nmf_res_sub <- NMF::nmf(M_sub, rank = rank, nrun = nrun, seed = seed, method = method, ...)
-    nmf_res <- expand_problem_rows(nmf_res_sub, problem_rows)
+    nmf_res <- expand_problems(nmf_res_sub, problem_rows, problem_cols)
   }
   return(nmf_res)
 }
 
-#' Expand NMF problem rows
+#' Expand NMF problem rows and columns
 #'
 #' @param nmf_res_sub NMF output on subset of data without problem rows
 #' @param problem_rows indices of problem rows
+#' @param problem_cols incides of problem cols
 #'
 #' @returns Updated NMF output
 #' @noRd
-expand_problem_rows <- function(nmf_res_sub, problem_rows) {
+expand_problems <- function(nmf_res_sub, problem_rows, problem_cols) {
   What_sub <- nmf_res_sub@fit@W
+  Hhat_sub <- nmf_res_sub@fit@H
 
-  # put 0 back in for problem rows
+  # put 0 back in factors for problem rows
   What <- matrix(0, nrow = nrow(What_sub) + sum(problem_rows), ncol = ncol(What_sub))
   What[!problem_rows,] <- What_sub
 
   stopifnot(all((rowSums(What) == 0) == problem_rows))
   nmf_res_sub@fit@W = What
+
+  # put 0 back in weights for problem cols
+  Hhat <- matrix(0, nrow = nrow(Hhat_sub), ncol = ncol(Hhat_sub) + sum(problem_cols))
+  Hhat[,!problem_cols] <- Hhat_sub
+
+  stopifnot(all((colSums(Hhat) == 0) == problem_cols))
+  nmf_res_sub@fit@H = Hhat
+
   return(nmf_res_sub)
 }
 
