@@ -33,6 +33,9 @@ all_data <- function(
   bootstrap = FALSE, bootstrap_reps = 500,
   bootstrap_filename = "all_data"
 ) {
+  if (mean(Tr) == 1 | mean(Tr) == 0) {
+    stop(glue("No diversity in treatment, all Tr = {mean(Tr)}"))
+  }
   if (bootstrap) {
     return(bootstrap_wrapper(
       all_data, bootstrap_filename,
@@ -103,6 +106,9 @@ random_split <- function(
   bootstrap = FALSE, bootstrap_reps = 500,
   bootstrap_filename = "random_split"
 ) {
+  if (mean(Tr) == 1 | mean(Tr) == 0) {
+    stop(glue("No diversity in treatment, all Tr = {mean(Tr)}"))
+  }
   if (bootstrap) {
     return(bootstrap_wrapper(
       random_split, bootstrap_filename,
@@ -188,6 +194,9 @@ impute <- function(
     bootstrap = FALSE, bootstrap_reps = 500,
     bootstrap_filename = "impute"
 ) {
+  if (mean(Tr) == 1 | mean(Tr) == 0) {
+    stop(glue("No diversity in treatment, all Tr = {mean(Tr)}"))
+  }
   if (bootstrap) {
     return(bootstrap_wrapper(
       impute, bootstrap_filename,
@@ -291,6 +300,9 @@ stabilize <- function(
     bootstrap = FALSE, bootstrap_reps = 500,
     bootstrap_filename = "stabilize"
 ) {
+  if (mean(Tr) == 1 | mean(Tr) == 0) {
+    stop(glue("No diversity in treatment, all Tr = {mean(Tr)}"))
+  }
   if (bootstrap) {
     return(bootstrap_wrapper(
       stabilize, bootstrap_filename,
@@ -366,6 +378,9 @@ impute_and_stabilize <- function(
     bootstrap = FALSE, bootstrap_reps = 500,
     bootstrap_filename = "impute_and_stabilize"
 ) {
+  if (mean(Tr) == 1 | mean(Tr) == 0) {
+    stop(glue("No diversity in treatment, all Tr = {mean(Tr)}"))
+  }
   if (bootstrap) {
     return(bootstrap_wrapper(
       impute_and_stabilize, bootstrap_filename,

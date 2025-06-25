@@ -49,6 +49,88 @@ rowMeans_wrapper <- function(mat) {
   return(rowMeans(mat))
 }
 
+#' Pairwise cosine similarity between rows or columns of matrices
+#'
+#' @param mat1 matrix, first matrix for comparison
+#' @param mat2 matrix, second matrix for comparison
+#' @param name1 string, to name rows or cols of similarity matrix
+#' @param name2 string, to name rows or cols of similarity matrix
+#' @param which string, one of c("rows","cols")
+#'
+#' @return matrix
+#' @export
+pairwise_sim <- function(
+    mat1, mat2,
+    name1 = NULL,
+    name2 = NULL,
+    which = 'cols'
+) {
+  row_names = colnames(mat1)
+  col_names = colnames(mat2)
+
+  if (which == 'cols') {
+    mat1 = t(mat1)
+    mat2 = t(mat2)
+  }
+
+  if (ncol(mat1) != ncol(mat2)) {
+    overlap_dim = ifelse(which == "rows","cols","rows")
+    stop(paste0(
+      "Different number of ", overlap_dim, ": ",
+      ncol(mat1), " != ", ncol(mat2)
+    ))
+  }
+
+  sim_mat = do.call(rbind, lapply(1:nrow(mat1), function(row_mat1) {
+    sapply(1:nrow(mat2), function(row_mat2) {
+      lsa::cosine(mat1[row_mat1,], mat2[row_mat2,])
+    })
+  }))
+
+  if (!is.null(name1)) {
+    rownames(sim_mat) = paste0(name1, 1:nrow(sim_mat))
+  } else {
+    rownames(sim_mat) = row_names
+  }
+
+  if (!is.null(name2)) {
+    colnames(sim_mat) = paste0(name2, 1:ncol(sim_mat))
+  } else {
+    colnames(sim_mat) = col_names
+  }
+
+  return(sim_mat)
+}
+
+#' Assign factors to a reference based on cosine similarities
+#'
+#' @param sim_mat similarity matrix between learned and reference factors
+#'
+#' @return matrix
+#' @export
+assign_factors <- function(sim_mat, keep_all = FALSE) {
+  reassignment <- RcppHungarian::HungarianSolver(-1 * sim_mat)
+  rows = reassignment$pairs[,1]
+  cols = reassignment$pairs[,2]
+  if (keep_all) {
+    for (row in setdiff(1:nrow(sim_mat), rows)) {
+      rows <- c(rows, row)
+    }
+    for (col in setdiff(1:ncol(sim_mat), cols)) {
+      cols <- c(cols, col)
+    }
+  }
+  reassigned_sim_mat <- sim_mat[rows, cols]
+
+  if (nrow(sim_mat) == 1 | ncol(sim_mat) == 1) {
+    reassigned_sim_mat = matrix(reassigned_sim_mat)
+    colnames(reassigned_sim_mat) = colnames(sim_mat)[cols]
+    rownames(reassigned_sim_mat) = rownames(sim_mat)[rows]
+  }
+
+  reassigned_sim_mat
+}
+
 #' Returns indices to split dataset into two parts
 #'
 #' @param N integer, sample size
@@ -136,8 +218,6 @@ expand_problems <- function(nmf_res_sub, problem_rows, problem_cols) {
 #' @returns list with estimated factors (P), factor loadings (C), and alignment
 #' to reference_P if provided
 #' @export
-#'
-#' @import bayesNMF
 extract_nmf_info <- function(nmf_res, reference_P = NULL) {
   Phat <- nmf_res@fit@W
   Chat <- nmf_res@fit@H
@@ -153,10 +233,10 @@ extract_nmf_info <- function(nmf_res, reference_P = NULL) {
   minsim = NULL
   reassigned = NULL
   if (!is.null(reference_P)) {
-    sim <- bayesNMF::pairwise_sim(reference_P, Phat, name2 = 'est')
+    sim <- pairwise_sim(reference_P, Phat, name2 = 'est')
     colnames(Phat) <- paste0('est', 1:N)
     rownames(Chat) <- paste0('est', 1:N)
-    reassigned <- bayesNMF::assign_signatures(sim)
+    reassigned <- assign_factors(sim)
     minsim = min(diag(reassigned))
     Phat <- Phat[, colnames(reassigned)]
     Chat <- Chat[colnames(reassigned), ]
