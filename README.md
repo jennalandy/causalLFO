@@ -1,6 +1,6 @@
 # `causalLFO`: R package for Causal Inference for Latent Outcomes Learned with Factor Models
 
-This R package provides all algorithms discussed in the paper “Causal Inference for Latent Outcomes Learned with Factor Models”. Code to reproduce results from our paper can be found in the [jennalandy/causalLFO_PAPER](https://github.com/jennalandy/causalLFO_PAPER/tree/master) repository.
+This R package provides all algorithms discussed in [the paper “Causal Inference for Latent Outcomes Learned with Factor Models”](https://arxiv.org/abs/2506.20549). Code to reproduce results from our paper can be found in the [jennalandy/causalLFO_PAPER](https://github.com/jennalandy/causalLFO_PAPER/tree/master) repository.
 
 ## Installation
 
